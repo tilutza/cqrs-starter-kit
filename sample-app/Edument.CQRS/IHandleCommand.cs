@@ -6,8 +6,8 @@ using System.Collections;
 
 namespace Edument.CQRS
 {
-    public interface IHandleCommand<TCommand>
+    public interface IHandleCommand<TCommand> where TCommand : ICommand
     {
-        IEnumerable Handle(TCommand c);
+        IEnumerable<IEvent> Handle(TCommand c);
     }
 }

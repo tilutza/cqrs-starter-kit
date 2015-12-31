@@ -39,7 +39,7 @@ namespace Edument.CQRS
         /// </summary>
         /// <typeparam name="TEvent"></typeparam>
         /// <param name="ev"></param>
-        public void ApplyOneEvent<TEvent>(TEvent ev)
+        public void ApplyOneEvent<TEvent>(TEvent ev) where TEvent : IEvent
         {
             var applier = this as IApplyEvent<TEvent>;
             if (applier == null)

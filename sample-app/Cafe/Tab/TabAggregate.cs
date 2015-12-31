@@ -29,7 +29,7 @@ namespace Cafe.Tab
         private bool open;
         private decimal servedItemsValue;
 
-        public IEnumerable Handle(OpenTab c)
+        public IEnumerable<IEvent> Handle(OpenTab c)
         {
             yield return new TabOpened
             {
@@ -39,7 +39,7 @@ namespace Cafe.Tab
             };
         }
 
-        public IEnumerable Handle(PlaceOrder c)
+        public IEnumerable<IEvent> Handle(PlaceOrder c)
         {
             if (!open)
                 throw new TabNotOpen();
@@ -61,7 +61,7 @@ namespace Cafe.Tab
                 };
         }
 
-        public IEnumerable Handle(MarkDrinksServed c)
+        public IEnumerable<IEvent> Handle(MarkDrinksServed c)
         {
             if (!AreDrinksOutstanding(c.MenuNumbers))
                 throw new DrinksNotOutstanding();
@@ -73,7 +73,7 @@ namespace Cafe.Tab
             };
         }
 
-        public IEnumerable Handle(MarkFoodPrepared c)
+        public IEnumerable<IEvent> Handle(MarkFoodPrepared c)
         {
             if (!IsFoodOutstanding(c.MenuNumbers))
                 throw new FoodNotOutstanding();
@@ -85,7 +85,7 @@ namespace Cafe.Tab
             };
         }
 
-        public IEnumerable Handle(MarkFoodServed c)
+        public IEnumerable<IEvent> Handle(MarkFoodServed c)
         {
             if (!IsFoodPrepared(c.MenuNumbers))
                 throw new FoodNotPrepared();
@@ -97,7 +97,7 @@ namespace Cafe.Tab
             };
         }
 
-        public IEnumerable Handle(CloseTab c)
+        public IEnumerable<IEvent> Handle(CloseTab c)
         {
             if (!open)
                 throw new TabNotOpen();

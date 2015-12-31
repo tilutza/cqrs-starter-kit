@@ -15,10 +15,10 @@ namespace Edument.CQRS
     /// </summary>
     public class MessageDispatcher
     {
-        private Dictionary<Type, Action<object>> commandHandlers =
-            new Dictionary<Type, Action<object>>();      
-        private Dictionary<Type, List<Action<object>>> eventSubscribers =
-            new Dictionary<Type, List<Action<object>>>();
+        private Dictionary<Type, Action<ICommand>> commandHandlers =
+            new Dictionary<Type, Action<ICommand>>();      
+        private Dictionary<Type, List<Action<IEvent>>> eventSubscribers =
+            new Dictionary<Type, List<Action<IEvent>>>();
         private IEventStore eventStore;
 
         /// <summary>
@@ -37,23 +37,24 @@ namespace Edument.CQRS
         /// </summary>
         /// <typeparam name="TCommand"></typeparam>
         /// <param name="c"></param>
-        public void SendCommand<TCommand>(TCommand c)
+        public void SendCommand<TCommand>(TCommand c) where TCommand : ICommand
         {
-            if (commandHandlers.ContainsKey(typeof(TCommand)))
-                commandHandlers[typeof(TCommand)](c);
-            else
+            Action<ICommand> handler;
+            if (!commandHandlers.TryGetValue(typeof(TCommand), out handler))
                 throw new Exception("No command handler registered for " + typeof(TCommand).Name);
+
+            handler(c);
         }
 
         /// <summary>
         /// Publishes the specified event to all of its subscribers.
         /// </summary>
         /// <param name="e"></param>
-        private void PublishEvent(object e)
+        private void PublishEvent(IEvent e)
         {
-            var eventType = e.GetType();
-            if (eventSubscribers.ContainsKey(eventType))
-                foreach (var sub in eventSubscribers[eventType])
+            List<Action<IEvent>> callbacks;
+            if (eventSubscribers.TryGetValue(e.GetType(), out callbacks))
+                foreach (var sub in callbacks)
                     sub(e);
         }
 
@@ -64,7 +65,8 @@ namespace Edument.CQRS
         /// <typeparam name="TAggregate"></typeparam>
         /// <param name="handler"></param>
         public void AddHandlerFor<TCommand, TAggregate>()
-            where TAggregate : Aggregate, new()
+            where TAggregate : Aggregate, IHandleCommand<TCommand>, new()
+            where TCommand : ICommand
         {
             if (commandHandlers.ContainsKey(typeof(TCommand)))
                 throw new Exception("Command handler already registered for " + typeof(TCommand).Name);
@@ -75,13 +77,13 @@ namespace Edument.CQRS
                     var agg = new TAggregate();
 
                     // Load the aggregate with events.
-                    agg.Id = ((dynamic)c).Id;
+                    agg.Id = c.Id;
                     agg.ApplyEvents(eventStore.LoadEventsFor<TAggregate>(agg.Id));
                     
                     // With everything set up, we invoke the command handler, collecting the
                     // events that it produces.
-                    var resultEvents = new ArrayList();
-                    foreach (var e in (agg as IHandleCommand<TCommand>).Handle((TCommand)c))
+                    var resultEvents = new List<IEvent>();
+                    foreach (var e in agg.Handle((TCommand)c))
                         resultEvents.Add(e);
                     
                     // Store the events in the event store.
@@ -101,18 +103,20 @@ namespace Edument.CQRS
         /// </summary>
         /// <typeparam name="TEvent"></typeparam>
         /// <param name="subscriber"></param>
-        public void AddSubscriberFor<TEvent>(ISubscribeTo<TEvent> subscriber)
+        public void AddSubscriberFor<TEvent>(ISubscribeTo<TEvent> subscriber) where TEvent : IEvent
         {
-            if (!eventSubscribers.ContainsKey(typeof(TEvent)))
-                eventSubscribers.Add(typeof(TEvent), new List<Action<object>>());
-            eventSubscribers[typeof(TEvent)].Add(e =>
-                subscriber.Handle((TEvent)e));
+            List<Action<IEvent>> callbacks;
+            if (!eventSubscribers.TryGetValue(typeof(TEvent), out callbacks))
+                eventSubscribers.Add(typeof(TEvent), callbacks = new List<Action<IEvent>>());
+
+            callbacks.Add(e => subscriber.Handle((TEvent)e));
         }
 
         /// <summary>
         /// Looks thorugh the specified assembly for all public types that implement
         /// the IHandleCommand or ISubscribeTo generic interfaces. Registers each of
-        /// the implementations as a command handler or event subscriber.
+        /// the implementations as a command handler or event subscriber.>	Edument.CQRS.dll!Edument.CQRS.MessageDispatcher.AddSubscriberFor.AnonymousMethod__0(object e) Line 109	C#
+
         /// </summary>
         /// <param name="ass"></param>
         public void ScanAssembly(Assembly ass)

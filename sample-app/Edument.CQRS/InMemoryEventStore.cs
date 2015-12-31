@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Edument.CQRS
@@ -9,7 +10,7 @@ namespace Edument.CQRS
     {
         private class Stream
         {
-            public ArrayList Events;
+            public List<IEvent> Events;
         }
 
         private ConcurrentDictionary<Guid, Stream> store =
@@ -26,7 +27,7 @@ namespace Edument.CQRS
                 return new ArrayList();
         }
 
-        public void SaveEventsFor<TAggregate>(Guid aggregateId, int eventsLoaded, ArrayList newEvents)
+        public void SaveEventsFor<TAggregate>(Guid aggregateId, int eventsLoaded, IEnumerable<IEvent> newEvents)
         {   
             // Get or create stream.
             var s = store.GetOrAdd(aggregateId, _ => new Stream());
@@ -45,8 +46,8 @@ namespace Edument.CQRS
                 // Create a new event list with existing ones plus our new
                 // ones (making new important for lock free algorithm!)
                 var newEventList = eventList == null
-                    ? new ArrayList()
-                    : (ArrayList)eventList.Clone();
+                    ? new List<IEvent>()
+                    : new List<IEvent>(eventList);
                 newEventList.AddRange(newEvents);
 
                 // Try to put the new event list in place atomically.

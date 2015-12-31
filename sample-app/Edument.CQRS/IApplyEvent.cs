@@ -9,7 +9,7 @@ namespace Edument.CQRS
     /// Implemented by an aggregate once for each event type it can apply.
     /// </summary>
     /// <typeparam name="TEvent"></typeparam>
-    public interface IApplyEvent<TEvent>
+    public interface IApplyEvent<TEvent> where TEvent : IEvent
     {
         void Apply(TEvent e);
     }

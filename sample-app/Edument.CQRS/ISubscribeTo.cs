@@ -10,7 +10,7 @@ namespace Edument.CQRS
     /// an aggregate and successfully stored.
     /// </summary>
     /// <typeparam name="TEvent"></typeparam>
-    public interface ISubscribeTo<TEvent>
+    public interface ISubscribeTo<TEvent> where TEvent : IEvent
     {
         void Handle(TEvent e);
     }

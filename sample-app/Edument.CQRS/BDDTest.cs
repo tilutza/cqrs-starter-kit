@@ -35,7 +35,7 @@ namespace Edument.CQRS
             return events;
         }
 
-        protected Func<TAggregate, object> When<TCommand>(TCommand command)
+        protected Func<TAggregate, object> When<TCommand>(TCommand command) where TCommand : ICommand
         {
             return agg =>
             {
@@ -107,7 +107,7 @@ namespace Edument.CQRS
             };
         }
 
-        private IEnumerable DispatchCommand<TCommand>(TCommand c)
+        private IEnumerable DispatchCommand<TCommand>(TCommand c) where TCommand : ICommand
         {
             var handler = sut as IHandleCommand<TCommand>;
             if (handler == null)
